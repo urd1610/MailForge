@@ -393,6 +393,35 @@
         stopButton.disabled = true;
       }
     };
+
+    const wireEventStreams = () => {
+      if (mailForge?.onThunderbirdMail) {
+        unsubscribeActivity = mailForge.onThunderbirdMail((activity) => {
+          displayError('');
+          setStatus('受信を検知', 'active');
+          appendLogEntry(activity);
+        });
+      }
+
+      if (mailForge?.onThunderbirdError) {
+        unsubscribeError = mailForge.onThunderbirdError((payload) => {
+          const message = payload?.message || 'Thunderbird監視中にエラーが発生しました。';
+          displayError(message);
+          startButton.disabled = false;
+          stopButton.disabled = true;
+        });
+      }
+    };
+
+    startButton.addEventListener('click', startWatching);
+    stopButton.addEventListener('click', stopWatching);
+    wireEventStreams();
+    ensureApiAvailable();
+
+    window.addEventListener('beforeunload', () => {
+      unsubscribeActivity?.();
+      unsubscribeError?.();
+    });
   </script>
 </body>
 
