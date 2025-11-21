@@ -382,11 +382,22 @@
           displayError(message);
           setStatus('失敗', 'error');
           startButton.disabled = false;
+          appendLogEntry({
+            timestamp: Date.now(),
+            filePath: message,
+            eventType: 'error'
+          });
         }
       } catch (error) {
-        displayError(error.message || '監視の開始に失敗しました。');
+        const message = error.message || '監視の開始に失敗しました。';
+        displayError(message);
         setStatus('失敗', 'error');
         startButton.disabled = false;
+        appendLogEntry({
+          timestamp: Date.now(),
+          filePath: message,
+          eventType: 'error'
+        });
       }
     };
 

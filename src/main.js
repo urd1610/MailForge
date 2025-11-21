@@ -25,18 +25,22 @@ function createMainWindow() {
 
 /** Start watching Thunderbird mail storage and forward activity to renderer. */
 function startThunderbirdWatcher() {
+  console.log('Starting Thunderbird watcher...');
   if (stopWatchingMail) {
+    console.log('Already watching.');
     return { ok: true, message: 'already watching' };
   }
 
   try {
     const { stop, watchedPaths } = watchThunderbirdMail({
       onActivity: (activity) => {
+        console.log('Activity detected:', activity);
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('thunderbird-mail-activity', activity);
         }
       },
       onError: (error, directory) => {
+        console.error('Error in watcher:', error, directory);
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('thunderbird-mail-error', {
             message: error.message,
@@ -46,9 +50,11 @@ function startThunderbirdWatcher() {
       },
     });
 
+    console.log('Watcher started. Paths:', watchedPaths);
     stopWatchingMail = stop;
     return { ok: true, watchedPaths };
   } catch (error) {
+    console.error('Failed to start watcher:', error);
     stopWatchingMail = null;
     return { ok: false, message: error.message };
   }
