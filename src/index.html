@@ -311,6 +311,35 @@
         errorBox.hidden = true;
       }
     };
+
+    const appendLogEntry = (activity) => {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+
+      const time = document.createElement('div');
+      time.className = 'log-time';
+      time.textContent = formatTime(activity.timestamp);
+
+      const filePath = document.createElement('div');
+      filePath.className = 'log-path';
+      filePath.textContent = activity.filePath || '(パス情報なし)';
+
+      const badge = document.createElement('div');
+      badge.className = 'log-event';
+      badge.textContent = activity.eventType || 'update';
+
+      entry.append(time, filePath, badge);
+      logContainer.prepend(entry);
+
+      logCount += 1;
+      logCountText.textContent = `${logCount} 件`;
+
+      const entries = logContainer.querySelectorAll('.log-entry');
+      if (entries.length > 60) {
+        const last = entries[entries.length - 1];
+        logContainer.removeChild(last);
+      }
+    };
   </script>
 </body>
 
