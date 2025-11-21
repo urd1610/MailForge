@@ -37,5 +37,5 @@ src-tauri/gen/apple/
 desktop.ini
 
 # Custom
-.kamui
-.worktrees
+.kamui/
+.worktrees/
