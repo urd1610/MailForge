@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MailForge</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Yu Gothic", "Segoe UI", sans-serif;
+      background: #f5f7fb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .form-shell {
+      width: 420px;
+      padding: 28px;
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: 0 12px 35px rgba(15, 23, 42, 0.12);
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 12px;
+      color: #101828;
+    }
+
+    p {
+      color: #667085;
+      margin-bottom: 20px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+      color: #475467;
+    }
+
+    input,
+    textarea {
+      padding: 10px 12px;
+      border: 1px solid #d0d5dd;
+      border-radius: 8px;
+      font-size: 1rem;
+      margin-bottom: 12px;
+      background: #f9fafb;
+    }
+
+    button {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="form-shell">
+    <h1>MailForge</h1>
+    <p>機能が整うまで、このフォームが起動するだけです。</p>
+    <form>
+      <label for="dummy">宛先</label>
+      <input id="dummy" type="text" placeholder="開発中..." disabled />
+      <label for="body">本文</label>
+      <textarea id="body" rows="4" placeholder="準備中..." disabled></textarea>
+      <button type="button" disabled>送信 (準備中)</button>
+    </form>
+  </div>
+</body>
+
+</html>
