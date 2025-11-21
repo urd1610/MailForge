@@ -63,8 +63,14 @@ function stopThunderbirdWatcher() {
   return { ok: true, message: 'not watching' };
 }
 
+function registerThunderbirdWatchIpc() {
+  ipcMain.handle('thunderbird-watch-start', () => startThunderbirdWatcher());
+  ipcMain.handle('thunderbird-watch-stop', () => stopThunderbirdWatcher());
+}
+
 app.whenReady().then(() => {
   createMainWindow();
+  registerThunderbirdWatchIpc();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
