@@ -19,6 +19,38 @@ function getThunderbirdProfilesIniPath() {
   return path.join(os.homedir(), '.thunderbird', 'profiles.ini');
 }
 
+/** Minimal parser for Thunderbird's profiles.ini that extracts profile sections. */
+function parseProfilesIni(content) {
+  const profiles = [];
+  let currentProfile = null;
+
+  content.split(/\r?\n/).forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line || line.startsWith(';') || line.startsWith('#')) {
+      return;
+    }
+
+    if (line.startsWith('[') && line.endsWith(']')) {
+      const section = line.slice(1, -1);
+      if (section.toLowerCase().startsWith('profile')) {
+        currentProfile = { section };
+        profiles.push(currentProfile);
+      } else {
+        currentProfile = null;
+      }
+      return;
+    }
+
+    if (currentProfile && line.includes('=')) {
+      const [key, ...rest] = line.split('=');
+      currentProfile[key.trim().toLowerCase()] = rest.join('=').trim();
+    }
+  });
+
+  return profiles;
+}
+
 module.exports = {
   getThunderbirdProfilesIniPath,
+  parseProfilesIni,
 };
