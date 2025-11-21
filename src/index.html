@@ -104,6 +104,11 @@
       color: #dc2626;
     }
 
+    .status-info {
+      background: #eff6ff;
+      color: #3b82f6;
+    }
+
     .actions {
       display: flex;
       gap: 10px;
@@ -367,6 +372,11 @@
         if (result?.ok) {
           setStatus('監視中', 'active');
           stopButton.disabled = false;
+          appendLogEntry({
+            timestamp: Date.now(),
+            filePath: `${result.watchedPaths.length} 箇所のディレクトリを監視開始しました`,
+            eventType: 'info'
+          });
         } else {
           const message = result?.message || '監視の開始に失敗しました。';
           displayError(message);

@@ -30,7 +30,7 @@ function startThunderbirdWatcher() {
   }
 
   try {
-    stopWatchingMail = watchThunderbirdMail({
+    const { stop, watchedPaths } = watchThunderbirdMail({
       onActivity: (activity) => {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('thunderbird-mail-activity', activity);
@@ -46,7 +46,8 @@ function startThunderbirdWatcher() {
       },
     });
 
-    return { ok: true };
+    stopWatchingMail = stop;
+    return { ok: true, watchedPaths };
   } catch (error) {
     stopWatchingMail = null;
     return { ok: false, message: error.message };

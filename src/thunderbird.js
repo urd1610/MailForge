@@ -173,8 +173,11 @@ function watchThunderbirdMail({ onActivity, onError } = {}) {
     throw new Error('Thunderbirdのメールフォルダー監視に失敗しました。');
   }
 
-  return () => {
-    watchers.splice(0).forEach((watcher) => watcher.close());
+  return {
+    stop: () => {
+      watchers.splice(0).forEach((watcher) => watcher.close());
+    },
+    watchedPaths: mailRoots,
   };
 }
 
