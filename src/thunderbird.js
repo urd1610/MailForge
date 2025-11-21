@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
@@ -50,7 +51,36 @@ function parseProfilesIni(content) {
   return profiles;
 }
 
+/**
+ * Resolve the default Thunderbird profile directory from profiles.ini.
+ * Falls back to the first profile if no default flag is found.
+ */
+function resolveDefaultProfilePath(profilesIniPath = getThunderbirdProfilesIniPath()) {
+  if (!fs.existsSync(profilesIniPath)) {
+    return null;
+  }
+
+  const content = fs.readFileSync(profilesIniPath, 'utf-8');
+  const profiles = parseProfilesIni(content);
+  if (!profiles.length) {
+    return null;
+  }
+
+  const defaultProfile =
+    profiles.find((profile) => profile.default === '1') ||
+    profiles.find((profile) => profile.name?.toLowerCase() === 'default') ||
+    profiles[0];
+
+  if (!defaultProfile.path) {
+    return null;
+  }
+
+  const baseDir = defaultProfile.isrelative === '1' ? path.dirname(profilesIniPath) : '';
+  return path.resolve(baseDir || '', defaultProfile.path);
+}
+
 module.exports = {
   getThunderbirdProfilesIniPath,
   parseProfilesIni,
+  resolveDefaultProfilePath,
 };
