@@ -1,0 +1,41 @@
+# General
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDEs
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.iml
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+.env
+.env.local
+.env.*.local
+
+# Rust
+/target
+/src-tauri/target
+Cargo.lock
+**/*.rs.bk
+
+# Tauri
+src-tauri/gen/android/
+src-tauri/gen/schemas/
+src-tauri/gen/apple/
+
+# OS
+desktop.ini
+
+# Custom
+.kamui
+.worktrees
