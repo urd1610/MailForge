@@ -7,3 +7,10 @@ function subscribeToChannel(channel, handler) {
     ipcRenderer.removeListener(channel, listener);
   };
 }
+
+contextBridge.exposeInMainWorld('mailForge', {
+  startThunderbirdWatch: () => ipcRenderer.invoke('thunderbird-watch-start'),
+  stopThunderbirdWatch: () => ipcRenderer.invoke('thunderbird-watch-stop'),
+  onThunderbirdMail: (handler) => subscribeToChannel('thunderbird-mail-activity', handler),
+  onThunderbirdError: (handler) => subscribeToChannel('thunderbird-mail-error', handler),
+});
