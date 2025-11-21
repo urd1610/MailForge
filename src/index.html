@@ -340,6 +340,59 @@
         logContainer.removeChild(last);
       }
     };
+
+    const ensureApiAvailable = () => {
+      if (!mailForge?.startThunderbirdWatch || !mailForge?.stopThunderbirdWatch) {
+        displayError('Thunderbird監視APIを利用できません。');
+        startButton.disabled = true;
+        stopButton.disabled = true;
+        setStatus('利用不可', 'error');
+        return false;
+      }
+      return true;
+    };
+
+    const startWatching = async () => {
+      if (!ensureApiAvailable()) {
+        return;
+      }
+
+      displayError('');
+      startButton.disabled = true;
+      stopButton.disabled = true;
+      setStatus('監視を起動しています…', 'idle');
+
+      try {
+        const result = await mailForge.startThunderbirdWatch();
+        if (result?.ok) {
+          setStatus('監視中', 'active');
+          stopButton.disabled = false;
+        } else {
+          const message = result?.message || '監視の開始に失敗しました。';
+          displayError(message);
+          setStatus('失敗', 'error');
+          startButton.disabled = false;
+        }
+      } catch (error) {
+        displayError(error.message || '監視の開始に失敗しました。');
+        setStatus('失敗', 'error');
+        startButton.disabled = false;
+      }
+    };
+
+    const stopWatching = async () => {
+      if (!mailForge?.stopThunderbirdWatch) {
+        return;
+      }
+
+      try {
+        await mailForge.stopThunderbirdWatch();
+      } finally {
+        setStatus('待機中', 'idle');
+        startButton.disabled = false;
+        stopButton.disabled = true;
+      }
+    };
   </script>
 </body>
 
