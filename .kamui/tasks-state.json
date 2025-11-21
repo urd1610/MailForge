@@ -1,0 +1,25 @@
+[
+  {
+    "id": "task-1763700206503-a1dd69",
+    "name": "CodexCLI3: エレクトロンでデスクトップアプリを作成してください。機能はこれから追加するので空のフォームが立ち上がるだけでまずはOKです。",
+    "model": "Codex CLI",
+    "status": "working",
+    "importance": "medium",
+    "urgency": "medium",
+    "createdAt": "2025-11-21T04:43:26.503Z",
+    "updatedAt": "2025-11-21T04:43:26.503Z",
+    "requiresTerminal": true,
+    "createWorktree": true,
+    "branchName": "task/task-1763700206503-a1dd69",
+    "baseBranch": "main",
+    "useTmux": true,
+    "aiCompetitionEntry": true,
+    "aiCompetitionResult": null,
+    "aiCompetitionGroupId": "comp-1763700200844-9j4uusbf",
+    "aiCompetitionGroupName": "エレクトロンでデスクトップアプリを作成してください。機能はこれから追加するので空のフォームが立ち上がるだけでまずはOKです。",
+    "aiCompetitionMonitor": false,
+    "monitorTargets": null,
+    "scoringConfig": null,
+    "worktreePath": "C:\\Users\\SD565\\workspace\\MailForge\\.worktrees\\task-1763700206503-a1dd69"
+  }
+]
