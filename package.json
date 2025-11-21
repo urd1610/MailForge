@@ -1,0 +1,17 @@
+{
+  "name": "task-1763700200845-4d7c05",
+  "version": "1.0.0",
+  "description": "Electron shell for MailForge task",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^39.2.3"
+  }
+}
