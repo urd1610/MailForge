@@ -1,7 +1,9 @@
 const path = require('path');
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
+const { watchThunderbirdMail } = require('./thunderbird');
 
 let mainWindow;
+let stopWatchingMail = null;
 
 /** Create the main window that hosts the empty form UI. */
 function createMainWindow() {
@@ -19,6 +21,36 @@ function createMainWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+}
+
+/** Start watching Thunderbird mail storage and forward activity to renderer. */
+function startThunderbirdWatcher() {
+  if (stopWatchingMail) {
+    return { ok: true, message: 'already watching' };
+  }
+
+  try {
+    stopWatchingMail = watchThunderbirdMail({
+      onActivity: (activity) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('thunderbird-mail-activity', activity);
+        }
+      },
+      onError: (error, directory) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('thunderbird-mail-error', {
+            message: error.message,
+            directory,
+          });
+        }
+      },
+    });
+
+    return { ok: true };
+  } catch (error) {
+    stopWatchingMail = null;
+    return { ok: false, message: error.message };
+  }
 }
 
 app.whenReady().then(() => {
