@@ -109,9 +109,25 @@ function findThunderbirdMailRoots(profileDir) {
   return roots;
 }
 
+/**
+ * Recursively attach fs.watch listeners when recursive option is unavailable.
+ */
+function attachWatchersRecursively(dir, handler, watchers) {
+  const watcher = fs.watch(dir, handler);
+  watchers.push(watcher);
+
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  entries
+    .filter((entry) => entry.isDirectory())
+    .forEach((entry) => {
+      attachWatchersRecursively(path.join(dir, entry.name), handler, watchers);
+    });
+}
+
 module.exports = {
   getThunderbirdProfilesIniPath,
   parseProfilesIni,
   resolveDefaultProfilePath,
   findThunderbirdMailRoots,
+  attachWatchersRecursively,
 };
