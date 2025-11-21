@@ -281,7 +281,36 @@
   </main>
 
   <script>
-    // ここに監視操作のスクリプトを追加します。
+    const mailForge = window.mailForge;
+    const statusEl = document.getElementById('status');
+    const startButton = document.getElementById('start-watch');
+    const stopButton = document.getElementById('stop-watch');
+    const logContainer = document.getElementById('log');
+    const logCountText = document.getElementById('log-count');
+    const errorBox = document.getElementById('error');
+
+    let unsubscribeActivity = null;
+    let unsubscribeError = null;
+    let logCount = 0;
+
+    const formatTime = (timestamp) =>
+      new Date(timestamp || Date.now()).toLocaleTimeString('ja-JP', { hour12: false });
+
+    const setStatus = (label, variant) => {
+      statusEl.textContent = label;
+      statusEl.className = `status status-${variant}`;
+    };
+
+    const displayError = (message) => {
+      if (message) {
+        errorBox.textContent = message;
+        errorBox.hidden = false;
+        setStatus('エラー', 'error');
+      } else {
+        errorBox.textContent = '';
+        errorBox.hidden = true;
+      }
+    };
   </script>
 </body>
 
