@@ -76,8 +76,26 @@ function resolveDefaultProfilePath(profilesIniPath = getThunderbirdProfilesIniPa
     return null;
   }
 
+  const baseDir = path.dirname(profilesIniPath);
+  const resolveProfilePath = (profile) => {
+    const base = profile.isrelative === '1' ? baseDir : '';
+    return path.resolve(base || '', profile.path);
+  };
+
+  const installDefaults = profiles.installSections || [];
+  const installDefaultEntry = installDefaults.find((install) => install.default);
+
+  const installDefaultProfile =
+    installDefaultEntry &&
+    profiles.find(
+      (profile) =>
+        profile.path && resolveProfilePath(profile) === path.resolve(baseDir, installDefaultEntry.default)
+    );
+
   const defaultProfile =
+    installDefaultProfile ||
     profiles.find((profile) => profile.default === '1') ||
+    profiles.find((profile) => profile.name?.toLowerCase() === 'default-release') ||
     profiles.find((profile) => profile.name?.toLowerCase() === 'default') ||
     profiles[0];
 
@@ -85,8 +103,7 @@ function resolveDefaultProfilePath(profilesIniPath = getThunderbirdProfilesIniPa
     return null;
   }
 
-  const baseDir = defaultProfile.isrelative === '1' ? path.dirname(profilesIniPath) : '';
-  return path.resolve(baseDir || '', defaultProfile.path);
+  return resolveProfilePath(defaultProfile);
 }
 
 /**
