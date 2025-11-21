@@ -158,12 +158,15 @@ function attachWatchersRecursively(dir, handler, watchers) {
 function watchThunderbirdMail({ onActivity, onError } = {}) {
   const profileDir = resolveDefaultProfilePath();
   if (!profileDir) {
-    throw new Error('Thunderbirdのプロファイルが見つかりません。');
+    const profilesIniPath = getThunderbirdProfilesIniPath();
+    const detailedError = `Thunderbirdのプロファイルが見つかりません。\n確認事項:\n- Thunderbirdがインストールされているか\n- プロファイルが初期化されているか\n- profiles.iniのパス: ${profilesIniPath}`;
+    throw new Error(detailedError);
   }
 
   const mailRoots = findThunderbirdMailRoots(profileDir);
   if (!mailRoots.length) {
-    throw new Error('Thunderbirdのメールディレクトリが見つかりません。');
+    const detailedError = `Thunderbirdのメールディレクトリが見つかりません。\n確認事項:\n- プロファイルディレクトリ: ${profileDir}\n- Mail/またはImapMail/ディレクトリが存在するか\n- メールアカウントが設定されているか`;
+    throw new Error(detailedError);
   }
 
   const watchers = [];
@@ -204,18 +207,31 @@ function watchThunderbirdMail({ onActivity, onError } = {}) {
       watcher.on('error', (error) => onError?.(error, dir));
       watchers.push(watcher);
     } catch (error) {
-      onError?.(error, dir);
+      const watchError = new Error(`ディレクトリの監視に失敗しました: ${dir}\nエラー: ${error.message}\n考えられる原因:\n- ディレクトリのアクセス権限\n- ディレクトリが存在しない\n- システムのファイル監視制限`);
+      onError?.(watchError, dir);
       try {
         attachWatchersRecursively(dir, handler, watchers);
       } catch (nestedError) {
-        onError?.(nestedError, dir);
+        const recursiveError = new Error(`再帰的監視にも失敗しました: ${dir}\nエラー: ${nestedError.message}`);
+        onError?.(recursiveError, dir);
       }
     }
   });
 
   if (!watchers.length) {
-    throw new Error('Thunderbirdのメールフォルダー監視に失敗しました。');
+    throw new Error('Thunderbirdのメールフォルダー監視に完全に失敗しました。すべてのディレクトリで監視を開始できません。');
   }
+
+  // 監視開始直後にテストアクティビティを送信
+  setTimeout(() => {
+    onActivity?.({
+      eventType: 'info',
+      filePath: `${mailRoots.length}箇所のメールディレクトリの監視を正常に開始しました`,
+      watchedDir: mailRoots[0],
+      timestamp: Date.now(),
+      isMailFile: false,
+    });
+  }, 1000);
 
   return {
     stop: () => {
