@@ -174,11 +174,28 @@ function watchThunderbirdMail({ onActivity, onError } = {}) {
         return;
       }
 
+      // ファイル拡張子からメール関連ファイルか判定
+      const fullPath = path.join(dir, filename.toString());
+      const isMailFile = filename.toString().endsWith('.msf') || 
+                        filename.toString().endsWith('.dat') ||
+                        !filename.toString().includes('.');
+
+      // イベントタイプをより具体的に判定
+      let detailedEventType = eventType;
+      if (isMailFile) {
+        if (eventType === 'rename') {
+          detailedEventType = 'mail_received';
+        } else if (eventType === 'change') {
+          detailedEventType = 'mail_updated';
+        }
+      }
+
       onActivity?.({
-        eventType,
-        filePath: path.join(dir, filename.toString()),
+        eventType: detailedEventType,
+        filePath: fullPath,
         watchedDir: dir,
         timestamp: Date.now(),
+        isMailFile,
       });
     };
 

@@ -264,9 +264,10 @@
     </header>
 
     <section class="status-row">
-      <div>
+      <div style="flex: 1;">
         <div class="label">監視状態</div>
         <div id="status" class="status status-idle">待機中</div>
+        <div id="watched-paths" class="muted" style="margin-top: 6px; font-size: 0.85rem;"></div>
       </div>
       <div class="actions">
         <button id="start-watch" class="primary">監視を開始</button>
@@ -288,6 +289,7 @@
   <script>
     const mailForge = window.mailForge;
     const statusEl = document.getElementById('status');
+    const watchedPathsEl = document.getElementById('watched-paths');
     const startButton = document.getElementById('start-watch');
     const stopButton = document.getElementById('stop-watch');
     const logContainer = document.getElementById('log');
@@ -304,6 +306,14 @@
     const setStatus = (label, variant) => {
       statusEl.textContent = label;
       statusEl.className = `status status-${variant}`;
+    };
+
+    const setWatchedPaths = (paths) => {
+      if (paths && paths.length > 0) {
+        watchedPathsEl.textContent = `監視対象: ${paths.join(', ')}`;
+      } else {
+        watchedPathsEl.textContent = '';
+      }
     };
 
     const displayError = (message) => {
@@ -331,7 +341,26 @@
 
       const badge = document.createElement('div');
       badge.className = 'log-event';
-      badge.textContent = activity.eventType || 'update';
+
+      // イベントタイプを日本語に変換
+      let eventText = activity.eventType || 'update';
+      if (eventText === 'mail_received') {
+        eventText = 'メール受信';
+      } else if (eventText === 'mail_updated') {
+        eventText = 'メール更新';
+      } else if (eventText === 'rename') {
+        eventText = 'リネーム';
+      } else if (eventText === 'change') {
+        eventText = '変更';
+      } else if (eventText === 'update') {
+        eventText = '更新';
+      } else if (eventText === 'info') {
+        eventText = '情報';
+      } else if (eventText === 'error') {
+        eventText = 'エラー';
+      }
+
+      badge.textContent = eventText;
 
       entry.append(time, filePath, badge);
       logContainer.prepend(entry);
@@ -372,9 +401,10 @@
         if (result?.ok) {
           setStatus('監視中', 'active');
           stopButton.disabled = false;
+          setWatchedPaths(result.watchedPaths || []);
           appendLogEntry({
             timestamp: Date.now(),
-            filePath: `${result.watchedPaths.length} 箇所のディレクトリを監視開始しました`,
+            filePath: `${result.watchedPaths?.length || 0} 箇所のディレクトリを監視開始しました`,
             eventType: 'info'
           });
         } else {
@@ -412,6 +442,7 @@
         setStatus('待機中', 'idle');
         startButton.disabled = false;
         stopButton.disabled = true;
+        setWatchedPaths([]);
       }
     };
 
