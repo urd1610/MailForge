@@ -1,4 +1,9 @@
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
-// Placeholder for future renderer API exposure.
-contextBridge.exposeInMainWorld('mailForge', {});
+function subscribeToChannel(channel, handler) {
+  const listener = (_event, payload) => handler(payload);
+  ipcRenderer.on(channel, listener);
+  return () => {
+    ipcRenderer.removeListener(channel, listener);
+  };
+}
