@@ -79,8 +79,39 @@ function resolveDefaultProfilePath(profilesIniPath = getThunderbirdProfilesIniPa
   return path.resolve(baseDir || '', defaultProfile.path);
 }
 
+/**
+ * Find Thunderbird mail root directories (Mail/ImapMail) under a profile.
+ * Returns account directories (e.g., ImapMail/gmail.example.com).
+ */
+function findThunderbirdMailRoots(profileDir) {
+  const roots = [];
+  const candidates = ['Mail', 'ImapMail'];
+
+  candidates.forEach((folder) => {
+    const base = path.join(profileDir, folder);
+    if (!fs.existsSync(base) || !fs.statSync(base).isDirectory()) {
+      return;
+    }
+
+    const entries = fs.readdirSync(base, { withFileTypes: true });
+    const accountDirs = entries.filter((entry) => entry.isDirectory());
+
+    if (!accountDirs.length) {
+      roots.push(base);
+      return;
+    }
+
+    accountDirs.forEach((dir) => {
+      roots.push(path.join(base, dir.name));
+    });
+  });
+
+  return roots;
+}
+
 module.exports = {
   getThunderbirdProfilesIniPath,
   parseProfilesIni,
   resolveDefaultProfilePath,
+  findThunderbirdMailRoots,
 };
