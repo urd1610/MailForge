@@ -20,9 +20,14 @@ function getThunderbirdProfilesIniPath() {
   return path.join(os.homedir(), '.thunderbird', 'profiles.ini');
 }
 
-/** Minimal parser for Thunderbird's profiles.ini that extracts profile sections. */
+/**
+ * Minimal parser for Thunderbird's profiles.ini.
+ * - Extracts Profile* sections as profiles array
+ * - Collects Install* sections to read the per-install default profile
+ */
 function parseProfilesIni(content) {
   const profiles = [];
+  const installSections = [];
   let currentProfile = null;
 
   content.split(/\r?\n/).forEach((rawLine) => {
@@ -33,9 +38,13 @@ function parseProfilesIni(content) {
 
     if (line.startsWith('[') && line.endsWith(']')) {
       const section = line.slice(1, -1);
-      if (section.toLowerCase().startsWith('profile')) {
+      const normalized = section.toLowerCase();
+      if (normalized.startsWith('profile')) {
         currentProfile = { section };
         profiles.push(currentProfile);
+      } else if (normalized.startsWith('install')) {
+        currentProfile = { section };
+        installSections.push(currentProfile);
       } else {
         currentProfile = null;
       }
@@ -48,6 +57,7 @@ function parseProfilesIni(content) {
     }
   });
 
+  profiles.installSections = installSections;
   return profiles;
 }
 
