@@ -9,8 +9,9 @@ function subscribeToChannel(channel, handler) {
 }
 
 contextBridge.exposeInMainWorld('mailForge', {
-  startThunderbirdWatch: () => ipcRenderer.invoke('thunderbird-watch-start'),
+  startThunderbirdWatch: (selectedPaths = null) => ipcRenderer.invoke('thunderbird-watch-start', selectedPaths),
   stopThunderbirdWatch: () => ipcRenderer.invoke('thunderbird-watch-stop'),
+  getThunderbirdDirectories: () => ipcRenderer.invoke('thunderbird-get-directories'),
   onThunderbirdMail: (handler) => subscribeToChannel('thunderbird-mail-activity', handler),
   onThunderbirdError: (handler) => subscribeToChannel('thunderbird-mail-error', handler),
 });

@@ -154,19 +154,41 @@ function attachWatchersRecursively(dir, handler, watchers) {
 /**
  * Start watching Thunderbird mail storage directories.
  * Calls onActivity when file changes occur and returns a stop function.
+ * @param {Object} options - Configuration options
+ * @param {Function} options.onActivity - Callback for activity events
+ * @param {Function} options.onError - Callback for error events  
+ * @param {string[]} options.selectedPaths - Specific paths to watch (optional)
  */
-function watchThunderbirdMail({ onActivity, onError } = {}) {
+function watchThunderbirdMail({ onActivity, onError, selectedPaths } = {}) {
   const profileDir = resolveDefaultProfilePath();
   if (!profileDir) {
     const profilesIniPath = getThunderbirdProfilesIniPath();
     const detailedError = `Thunderbirdのプロファイルが見つかりません。\n確認事項:\n- Thunderbirdがインストールされているか\n- プロファイルが初期化されているか\n- profiles.iniのパス: ${profilesIniPath}`;
-    throw new Error(detailedError);
+    const error = new Error(detailedError);
+    error.code = 'NO_PROFILE';
+    error.profilesIniPath = profilesIniPath;
+    throw error;
   }
 
-  const mailRoots = findThunderbirdMailRoots(profileDir);
-  if (!mailRoots.length) {
-    const detailedError = `Thunderbirdのメールディレクトリが見つかりません。\n確認事項:\n- プロファイルディレクトリ: ${profileDir}\n- Mail/またはImapMail/ディレクトリが存在するか\n- メールアカウントが設定されているか`;
-    throw new Error(detailedError);
+  let mailRoots;
+  if (selectedPaths && selectedPaths.length > 0) {
+    // 指定されたパスのみを使用
+    mailRoots = selectedPaths.filter(path => fs.existsSync(path) && fs.statSync(path).isDirectory());
+    if (!mailRoots.length) {
+      const error = new Error(`指定された監視対象のディレクトリが存在しません。\n指定されたパス: ${selectedPaths.join(', ')}`);
+      error.code = 'NO_MAIL_DIRECTORIES';
+      throw error;
+    }
+  } else {
+    // すべてのメールディレクトリを使用（既存の動作）
+    mailRoots = findThunderbirdMailRoots(profileDir);
+    if (!mailRoots.length) {
+      const detailedError = `Thunderbirdのメールディレクトリが見つかりません。\n確認事項:\n- プロファイルディレクトリ: ${profileDir}\n- Mail/またはImapMail/ディレクトリが存在するか\n- メールアカウントが設定されているか`;
+      const error = new Error(detailedError);
+      error.code = 'NO_MAIL_DIRECTORIES';
+      error.profileDir = profileDir;
+      throw error;
+    }
   }
 
   const watchers = [];
@@ -219,7 +241,10 @@ function watchThunderbirdMail({ onActivity, onError } = {}) {
   });
 
   if (!watchers.length) {
-    throw new Error('Thunderbirdのメールフォルダー監視に完全に失敗しました。すべてのディレクトリで監視を開始できません。');
+    const error = new Error('Thunderbirdのメールフォルダー監視に完全に失敗しました。すべてのディレクトリで監視を開始できません。');
+    error.code = 'WATCH_FAILED';
+    error.mailRoots = mailRoots;
+    throw error;
   }
 
   // 監視開始直後にテストアクティビティを送信
@@ -241,6 +266,44 @@ function watchThunderbirdMail({ onActivity, onError } = {}) {
   };
 }
 
+/**
+ * Get available Thunderbird mail directories for user selection.
+ * Returns an array of directory information objects.
+ */
+function getAvailableMailDirectories() {
+  const profileDir = resolveDefaultProfilePath();
+  if (!profileDir) {
+    const profilesIniPath = getThunderbirdProfilesIniPath();
+    const error = new Error(`Thunderbirdのプロファイルが見つかりません。\nprofiles.iniのパス: ${profilesIniPath}`);
+    error.code = 'NO_PROFILE';
+    throw error;
+  }
+
+  const mailRoots = findThunderbirdMailRoots(profileDir);
+  if (!mailRoots.length) {
+    const error = new Error(`Thunderbirdのメールディレクトリが見つかりません。\nプロファイルディレクトリ: ${profileDir}`);
+    error.code = 'NO_MAIL_DIRECTORIES';
+    throw error;
+  }
+
+  // 各ディレクトリの情報を収集
+  const directories = mailRoots.map(dir => {
+    const relativePath = path.relative(profileDir, dir);
+    const isAccountDir = relativePath.includes(path.sep);
+    const accountName = isAccountDir ? path.basename(dir) : 'すべてのアカウント';
+    
+    return {
+      path: dir,
+      relativePath: relativePath,
+      displayName: accountName,
+      fullPath: dir,
+      isAccountDirectory: isAccountDir
+    };
+  });
+
+  return directories;
+}
+
 module.exports = {
   getThunderbirdProfilesIniPath,
   parseProfilesIni,
@@ -248,4 +311,5 @@ module.exports = {
   findThunderbirdMailRoots,
   attachWatchersRecursively,
   watchThunderbirdMail,
+  getAvailableMailDirectories,
 };

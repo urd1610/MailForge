@@ -228,6 +228,25 @@
       font-weight: 600;
       white-space: pre-line;
       line-height: 1.6;
+      animation: shake 0.5s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+      20%, 40%, 60%, 80% { transform: translateX(2px); }
+    }
+
+    .error-panel.warning {
+      background: #fefce8;
+      border: 1px solid #fde047;
+      color: #ca8a04;
+    }
+
+    .error-panel.info {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
     }
 
     .error-panel h4 {
@@ -244,6 +263,68 @@
 
     .error-panel li {
       margin-bottom: 4px;
+    }
+
+    .directory-list {
+      background: #ffffff;
+      border: 1px solid #e4e7ec;
+      border-radius: 10px;
+      padding: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .directory-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .directory-item:hover {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+    }
+
+    .directory-item.selected {
+      background: #eef2ff;
+      border-color: #a5b4fc;
+      box-shadow: 0 2px 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .directory-checkbox {
+      margin-right: 12px;
+      width: 16px;
+      height: 16px;
+      accent-color: #6366f1;
+    }
+
+    .directory-info {
+      flex: 1;
+    }
+
+    .directory-name {
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+
+    .directory-path {
+      font-size: 0.85rem;
+      color: #667085;
+      word-break: break-all;
+    }
+
+    .loading-message {
+      text-align: center;
+      color: #667085;
+      padding: 20px;
+      font-style: italic;
     }
 
     @media (max-width: 720px) {
@@ -294,8 +375,19 @@
         <div id="last-activity" class="muted" style="margin-top: 4px; font-size: 0.8rem;"></div>
       </div>
       <div class="actions">
+        <button id="refresh-directories" class="secondary">更新</button>
         <button id="start-watch" class="primary">監視を開始</button>
         <button id="stop-watch" class="secondary" disabled>停止</button>
+      </div>
+    </section>
+
+    <section class="panel" id="directory-selection" style="margin-bottom: 18px;">
+      <div class="panel-head">
+        <div>監視対象の選択</div>
+        <div id="directory-count" class="muted">0 件</div>
+      </div>
+      <div id="directory-list" class="directory-list">
+        <div class="loading-message">Thunderbirdのメールディレクトリを読み込み中...</div>
       </div>
     </section>
 
@@ -317,9 +409,12 @@
     const lastActivityEl = document.getElementById('last-activity');
     const startButton = document.getElementById('start-watch');
     const stopButton = document.getElementById('stop-watch');
+    const refreshButton = document.getElementById('refresh-directories');
     const logContainer = document.getElementById('log');
     const logCountText = document.getElementById('log-count');
     const errorBox = document.getElementById('error');
+    const directoryList = document.getElementById('directory-list');
+    const directoryCount = document.getElementById('directory-count');
 
     let unsubscribeActivity = null;
     let unsubscribeError = null;
@@ -327,6 +422,8 @@
     let isWatching = false;
     let lastActivityTime = null;
     let activityCheckInterval = null;
+    let availableDirectories = [];
+    let selectedDirectories = [];
 
     const formatTime = (timestamp) =>
       new Date(timestamp || Date.now()).toLocaleTimeString('ja-JP', { hour12: false });
@@ -374,11 +471,22 @@
       }
     };
 
-    const displayError = (message) => {
+    const displayError = (message, type = 'error') => {
       if (message) {
         errorBox.textContent = message;
         errorBox.hidden = false;
-        setStatus('エラー', 'error');
+        
+        // エラーパネルのスタイルをタイプに応じて変更
+        errorBox.className = 'error-panel';
+        if (type === 'warning') {
+          errorBox.classList.add('warning');
+          setStatus('警告', 'warning');
+        } else if (type === 'info') {
+          errorBox.classList.add('info');
+          setStatus('情報', 'info');
+        } else {
+          setStatus('エラー', 'error');
+        }
       } else {
         errorBox.textContent = '';
         errorBox.hidden = true;
@@ -386,10 +494,11 @@
     };
 
     const ensureApiAvailable = () => {
-      if (!mailForge?.startThunderbirdWatch || !mailForge?.stopThunderbirdWatch) {
+      if (!mailForge?.startThunderbirdWatch || !mailForge?.stopThunderbirdWatch || !mailForge?.getThunderbirdDirectories) {
         displayError('Thunderbird監視APIを利用できません。');
         startButton.disabled = true;
         stopButton.disabled = true;
+        refreshButton.disabled = true;
         setStatus('利用不可', 'error');
         return false;
       }
@@ -401,6 +510,11 @@
         return;
       }
 
+      if (selectedDirectories.length === 0) {
+        displayError('監視対象のディレクトリを少なくとも1つ選択してください。', 'warning');
+        return;
+      }
+
       displayError('');
       startButton.disabled = true;
       stopButton.disabled = true;
@@ -408,7 +522,7 @@
       lastActivityEl.style.color = '#667085';
 
       try {
-        const result = await mailForge.startThunderbirdWatch();
+        const result = await mailForge.startThunderbirdWatch(selectedDirectories);
         if (result?.ok) {
           isWatching = true;
           lastActivityTime = Date.now();
@@ -427,13 +541,14 @@
           });
         } else {
           const message = result?.message || '監視の開始に失敗しました。';
-          displayError(message);
-          setStatus('失敗', 'error');
+          const errorType = result?.code === 'NO_PROFILE' || result?.code === 'NO_MAIL_DIRECTORIES' ? 'warning' : 'error';
+          displayError(message, errorType);
+          setStatus(result?.code === 'WATCH_FAILED' ? '失敗' : '警告', result?.code === 'WATCH_FAILED' ? 'error' : 'warning');
           startButton.disabled = false;
           appendLogEntry({
             timestamp: Date.now(),
             filePath: message,
-            eventType: 'error'
+            eventType: result?.code === 'WATCH_FAILED' ? 'error' : 'warning'
           });
         }
       } catch (error) {
@@ -531,6 +646,8 @@
         eventText = '情報';
       } else if (eventText === 'error') {
         eventText = 'エラー';
+      } else if (eventText === 'warning') {
+        eventText = '警告';
       }
 
       badge.textContent = eventText;
@@ -550,8 +667,89 @@
 
     startButton.addEventListener('click', startWatching);
     stopButton.addEventListener('click', stopWatching);
+    refreshButton.addEventListener('click', loadDirectories);
     wireEventStreams();
     ensureApiAvailable();
+    loadDirectories();
+
+    const loadDirectories = async () => {
+      if (!ensureApiAvailable()) return;
+
+      try {
+        const result = await mailForge.getThunderbirdDirectories();
+        if (result?.ok) {
+          availableDirectories = result.directories || [];
+          renderDirectoryList();
+        } else {
+          const message = result?.message || 'ディレクトリ情報の取得に失敗しました。';
+          displayError(message, result?.code === 'NO_PROFILE' ? 'warning' : 'error');
+          directoryList.innerHTML = `<div class="loading-message">${message}</div>`;
+        }
+      } catch (error) {
+        const message = error.message || 'ディレクトリ情報の取得に失敗しました。';
+        displayError(message);
+        directoryList.innerHTML = `<div class="loading-message">${message}</div>`;
+      }
+    };
+
+    const renderDirectoryList = () => {
+      if (availableDirectories.length === 0) {
+        directoryList.innerHTML = '<div class="loading-message">利用可能なメールディレクトリがありません</div>';
+        directoryCount.textContent = '0 件';
+        return;
+      }
+
+      directoryList.innerHTML = '';
+      availableDirectories.forEach((dir, index) => {
+        const item = document.createElement('div');
+        item.className = 'directory-item';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'directory-checkbox';
+        checkbox.checked = selectedDirectories.includes(dir.path);
+        checkbox.addEventListener('change', () => toggleDirectory(dir.path, checkbox.checked));
+        
+        const info = document.createElement('div');
+        info.className = 'directory-info';
+        
+        const name = document.createElement('div');
+        name.className = 'directory-name';
+        name.textContent = dir.displayName;
+        
+        const path = document.createElement('div');
+        path.className = 'directory-path';
+        path.textContent = dir.relativePath;
+        
+        info.appendChild(name);
+        info.appendChild(path);
+        
+        item.appendChild(checkbox);
+        item.appendChild(info);
+        
+        item.addEventListener('click', (e) => {
+          if (e.target !== checkbox) {
+            checkbox.checked = !checkbox.checked;
+            toggleDirectory(dir.path, checkbox.checked);
+          }
+        });
+        
+        directoryList.appendChild(item);
+      });
+      
+      directoryCount.textContent = `${selectedDirectories.length} / ${availableDirectories.length} 件選択`;
+    };
+
+    const toggleDirectory = (path, isSelected) => {
+      if (isSelected) {
+        if (!selectedDirectories.includes(path)) {
+          selectedDirectories.push(path);
+        }
+      } else {
+        selectedDirectories = selectedDirectories.filter(p => p !== path);
+      }
+      directoryCount.textContent = `${selectedDirectories.length} / ${availableDirectories.length} 件選択`;
+    };
 
     window.addEventListener('beforeunload', () => {
       unsubscribeActivity?.();
