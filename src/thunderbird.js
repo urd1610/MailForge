@@ -124,10 +124,65 @@ function attachWatchersRecursively(dir, handler, watchers) {
     });
 }
 
+/**
+ * Start watching Thunderbird mail storage directories.
+ * Calls onActivity when file changes occur and returns a stop function.
+ */
+function watchThunderbirdMail({ onActivity, onError } = {}) {
+  const profileDir = resolveDefaultProfilePath();
+  if (!profileDir) {
+    throw new Error('Thunderbirdのプロファイルが見つかりません。');
+  }
+
+  const mailRoots = findThunderbirdMailRoots(profileDir);
+  if (!mailRoots.length) {
+    throw new Error('Thunderbirdのメールディレクトリが見つかりません。');
+  }
+
+  const watchers = [];
+
+  mailRoots.forEach((dir) => {
+    const handler = (eventType, filename) => {
+      if (!filename) {
+        return;
+      }
+
+      onActivity?.({
+        eventType,
+        filePath: path.join(dir, filename.toString()),
+        watchedDir: dir,
+        timestamp: Date.now(),
+      });
+    };
+
+    try {
+      const watcher = fs.watch(dir, { recursive: process.platform !== 'linux' }, handler);
+      watcher.on('error', (error) => onError?.(error, dir));
+      watchers.push(watcher);
+    } catch (error) {
+      onError?.(error, dir);
+      try {
+        attachWatchersRecursively(dir, handler, watchers);
+      } catch (nestedError) {
+        onError?.(nestedError, dir);
+      }
+    }
+  });
+
+  if (!watchers.length) {
+    throw new Error('Thunderbirdのメールフォルダー監視に失敗しました。');
+  }
+
+  return () => {
+    watchers.splice(0).forEach((watcher) => watcher.close());
+  };
+}
+
 module.exports = {
   getThunderbirdProfilesIniPath,
   parseProfilesIni,
   resolveDefaultProfilePath,
   findThunderbirdMailRoots,
   attachWatchersRecursively,
+  watchThunderbirdMail,
 };
