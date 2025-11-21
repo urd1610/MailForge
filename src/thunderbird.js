@@ -20,9 +20,14 @@ function getThunderbirdProfilesIniPath() {
   return path.join(os.homedir(), '.thunderbird', 'profiles.ini');
 }
 
-/** Minimal parser for Thunderbird's profiles.ini that extracts profile sections. */
+/**
+ * Minimal parser for Thunderbird's profiles.ini.
+ * - Extracts Profile* sections as profiles array
+ * - Collects Install* sections to read the per-install default profile
+ */
 function parseProfilesIni(content) {
   const profiles = [];
+  const installSections = [];
   let currentProfile = null;
 
   content.split(/\r?\n/).forEach((rawLine) => {
@@ -33,9 +38,13 @@ function parseProfilesIni(content) {
 
     if (line.startsWith('[') && line.endsWith(']')) {
       const section = line.slice(1, -1);
-      if (section.toLowerCase().startsWith('profile')) {
+      const normalized = section.toLowerCase();
+      if (normalized.startsWith('profile')) {
         currentProfile = { section };
         profiles.push(currentProfile);
+      } else if (normalized.startsWith('install')) {
+        currentProfile = { section };
+        installSections.push(currentProfile);
       } else {
         currentProfile = null;
       }
@@ -48,6 +57,7 @@ function parseProfilesIni(content) {
     }
   });
 
+  profiles.installSections = installSections;
   return profiles;
 }
 
@@ -66,8 +76,26 @@ function resolveDefaultProfilePath(profilesIniPath = getThunderbirdProfilesIniPa
     return null;
   }
 
+  const baseDir = path.dirname(profilesIniPath);
+  const resolveProfilePath = (profile) => {
+    const base = profile.isrelative === '1' ? baseDir : '';
+    return path.resolve(base || '', profile.path);
+  };
+
+  const installDefaults = profiles.installSections || [];
+  const installDefaultEntry = installDefaults.find((install) => install.default);
+
+  const installDefaultProfile =
+    installDefaultEntry &&
+    profiles.find(
+      (profile) =>
+        profile.path && resolveProfilePath(profile) === path.resolve(baseDir, installDefaultEntry.default)
+    );
+
   const defaultProfile =
+    installDefaultProfile ||
     profiles.find((profile) => profile.default === '1') ||
+    profiles.find((profile) => profile.name?.toLowerCase() === 'default-release') ||
     profiles.find((profile) => profile.name?.toLowerCase() === 'default') ||
     profiles[0];
 
@@ -75,8 +103,7 @@ function resolveDefaultProfilePath(profilesIniPath = getThunderbirdProfilesIniPa
     return null;
   }
 
-  const baseDir = defaultProfile.isrelative === '1' ? path.dirname(profilesIniPath) : '';
-  return path.resolve(baseDir || '', defaultProfile.path);
+  return resolveProfilePath(defaultProfile);
 }
 
 /**
