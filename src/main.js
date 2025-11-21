@@ -53,6 +53,16 @@ function startThunderbirdWatcher() {
   }
 }
 
+function stopThunderbirdWatcher() {
+  if (stopWatchingMail) {
+    stopWatchingMail();
+    stopWatchingMail = null;
+    return { ok: true };
+  }
+
+  return { ok: true, message: 'not watching' };
+}
+
 app.whenReady().then(() => {
   createMainWindow();
 
